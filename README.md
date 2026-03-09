@@ -17,15 +17,17 @@
 Першим етапом мого дослідження став статичний аналіз файлу для визначення його архітектури та наявності пакувальників. Використавши утиліту **Detect It Easy (DiE)**, я побачив, що файл скомпільовано для платформи .NET. Це дозволило мені декомпілювати код програми.
 
 
-<img width="683" height="333" alt="image" src="https://github.com/user-attachments/assets/c8628b1a-cee6-4ef3-901a-a25a22023de3" />
+<img width="814" height="347" alt="image" src="https://github.com/user-attachments/assets/f3259bee-ffbe-4eeb-8fb3-1c9ca1d13d02" />
+
 
 
 Відкривши файл у декомпіляторі dnSpy, я розпочав аналіз його структури. Дослідження коду показало, що цей виконуваний файл діє як "контейнер" (Dropper). Замість того, щоб містити єдиний шкідливий модуль, він приховував у собі цілий арсенал інших зашифрованих файлів. Логіка виконання дроппера виявилася дуже простою: по черзі розшифрувати ці файли в директорію `%Temp%` та запустити. Зазирнувши в директиву `Resources` (Ресурси), я виявив 35 прихованих файлів. 
 
+<img width="1044" height="679" alt="image" src="https://github.com/user-attachments/assets/92970d18-08c8-48c2-9a57-6014a920ff41" />
 
-<img width="1038" height="681" alt="image" src="https://github.com/user-attachments/assets/14d48d6c-e307-4156-8865-16b83f7884bd" />
 
-<img width="499" height="631" alt="image" src="https://github.com/user-attachments/assets/b4542ae8-1160-4b74-a070-6807d29a4de6" />
+<img width="495" height="631" alt="image" src="https://github.com/user-attachments/assets/c359403e-be48-455f-bb57-535b5905a478" />
+
 
 Назви цих файлів сильно відрізняються одна від одної, що свідчить про те, що автор, швидше за все, використовував пейлоади інших авторів.
 ---
@@ -33,13 +35,17 @@
 ## Патчинг та аналіз шифрування
 Щоб безпечно вилучити корисні навантаження без ризику зараження мого середовища, я застосував метод модифікації проміжного коду (або просто **патчинг**). Я знайшов у dnSpy виклик методу `Process.Start(text)`, який відповідав за запуск файлів у системі. Замість того, щоб дозволити вірусу виконати цю команду, я відредагував IL-інструкції, замінивши цей виклик на інструкції NOP-и. Отриманий в результаті патчингу модифікований файл я запустив в ізольованому середовищі. Програма виконала алгоритм розшифрування і зберегла всі 35 корисних навантажень у директорію `%Temp%`, але завдяки впровадженим інструкціям NOP ланцюг виконання не відбувся.
 
-<img width="496" height="683" alt="image" src="https://github.com/user-attachments/assets/4feaa350-1527-430d-acdc-f0b00471eb4f" />
+<img width="603" height="697" alt="image" src="https://github.com/user-attachments/assets/fc1ef84d-0607-460d-b543-8f3aadcb730d" />
+
 
 Але аналіз шифрування зробити все одно треба. Під час дослідження функції `GetTheResource()` з'ясувалося, що зловмисник використав алгоритм AES. Цікавою деталлю стало те, що замість складного ключа розшифрування програма використовує наперед визначений мютекс. Можна було б написати Python-скрипт для автоматичного розшифрування ресурсу, але все ж метод IL-патчингу виявився значно швидшим та ефективнішим у цьому сценарії.
 
-<img width="692" height="171" alt="image" src="https://github.com/user-attachments/assets/ac01016a-21d9-4f90-b848-a35ee5126f0b" />
-<img width="670" height="353" alt="image" src="https://github.com/user-attachments/assets/a1fe5790-4e5d-4a18-874b-1f6857c22fd8" />
-<img width="438" height="172" alt="image" src="https://github.com/user-attachments/assets/4b86c85d-f787-41e5-9823-bd099f5a501d" />
+<img width="699" height="129" alt="image" src="https://github.com/user-attachments/assets/022b35e2-2530-4521-a567-35207a17e133" />
+
+<img width="851" height="315" alt="image" src="https://github.com/user-attachments/assets/c90798c0-871b-46cd-8f7a-b0af383d41c3" />
+
+<img width="431" height="128" alt="image" src="https://github.com/user-attachments/assets/9cb58982-3643-414b-803c-b080db7131c8" />
+
 
 ---
 
